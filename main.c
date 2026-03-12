@@ -600,12 +600,12 @@ void main() {
 
 	status = VL53L0X_DataInit(pDev);
 	if (status != VL53L0X_ERROR_NONE) {
-		UART_PRINT("You fucky upy\r\n");
+		UART_PRINT("You fucked up\r\n");
 	}
 
 	status = VL53L0X_GetDeviceInfo(pDev, &DeviceInfo);
 	if (status != VL53L0X_ERROR_NONE) {
-		UART_PRINT("You fucky upy\r\n");
+		UART_PRINT("You fuck up\r\n");
 	}
 
 	status = VL53L0X_StaticInit(pDev);
@@ -615,7 +615,7 @@ void main() {
 
 	status = VL53L0X_PerformRefSpadManagement(pDev, &refSpadCount, &isApertureSpads);
 	if (status != VL53L0X_ERROR_NONE) {
-		UART_PRINT("You fucky!\r\n");
+		UART_PRINT("You fuck!\r\n");
 	}
 
 	status = VL53L0X_PerformRefCalibration(pDev, &VhvSettings, &PhaseCal);
@@ -625,7 +625,7 @@ void main() {
 
 	status = VL53L0X_SetDeviceMode(pDev, VL53L0X_DEVICEMODE_SINGLE_RANGING);
 	if (status != VL53L0X_ERROR_NONE) {
-		UART_PRINT("You done upy\r\n");
+		UART_PRINT("You done up\r\n");
 	}
 	//
 	// Display the banner followed by the usage description
@@ -637,7 +637,7 @@ void main() {
 		VL53L0X_RangingMeasurementData_t measure;
 		status = VL53L0X_PerformSingleRangingMeasurement(pDev, &measure);
 		if (status != VL53L0X_ERROR_NONE) {
-			UART_PRINT("You very very fucky upy\r\n");
+			UART_PRINT("You very very fuck up\r\n");
 			while (1)
 				;
 		}
