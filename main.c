@@ -644,6 +644,12 @@ void main() {
 
 		uint16_t distance = measure.RangeMilliMeter;
 
+		if (distance < 50) {
+			motorfoward();
+		} else {
+			motorstop();
+		}
+
 		UART_PRINT("Distance: %d\r\n", distance);
 	}
 
