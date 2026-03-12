@@ -1,45 +1,45 @@
 //*****************************************************************************
 //
-// Copyright (C) 2014 Texas Instruments Incorporated - http://www.ti.com/ 
-// 
-// 
-//  Redistribution and use in source and binary forms, with or without 
-//  modification, are permitted provided that the following conditions 
+// Copyright (C) 2014 Texas Instruments Incorporated - http://www.ti.com/
+//
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions
 //  are met:
 //
-//    Redistributions of source code must retain the above copyright 
+//    Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
 //
 //    Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the 
-//    documentation and/or other materials provided with the   
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the
 //    distribution.
 //
 //    Neither the name of Texas Instruments Incorporated nor the names of
 //    its contributors may be used to endorse or promote products derived
 //    from this software without specific prior written permission.
 //
-//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
-//  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
+//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+//  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 //  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-//  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-//  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-//  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+//  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+//  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+//  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
 //  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 //  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-//  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-//  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+//  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+//  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //*****************************************************************************
 
 //*****************************************************************************
 //
-// Application Name     - I2C 
-// Application Overview - The objective of this application is act as an I2C 
-//                        diagnostic tool. The demo application is a generic 
-//                        implementation that allows the user to communicate 
-//                        with any I2C device over the lines. 
+// Application Name     - I2C
+// Application Overview - The objective of this application is act as an I2C
+//                        diagnostic tool. The demo application is a generic
+//                        implementation that allows the user to communicate
+//                        with any I2C device over the lines.
 //
 //*****************************************************************************
 
@@ -76,27 +76,40 @@
 #include "vl53lo/core/inc/vl53l0x_api.h"
 #include "vl53lo/platform/inc/vl53l0x_platform.h"
 
-
 //*****************************************************************************
 //                      MACRO DEFINITIONS
 //*****************************************************************************
-#define APPLICATION_VERSION     "1.4.0"
-#define APP_NAME                "I2C Demo"
-#define UART_PRINT              Report
-#define FOREVER                 1
-#define CONSOLE                 UARTA0_BASE
-#define FAILURE                 -1
-#define SUCCESS                 0
-#define RETERR_IF_TRUE(condition) {if(condition) return FAILURE;}
-#define RET_IF_ERR(Func)          {int iRetVal = (Func); \
-                                   if (SUCCESS != iRetVal) \
-                                     return  iRetVal;}
+#define APPLICATION_VERSION "0.0.0"
+#define APP_NAME			"Roomba"
+#define UART_PRINT			Report
+#define FOREVER				1
+#define CONSOLE				UARTA0_BASE
+#define FAILURE				-1
+#define SUCCESS				0
+#define RETERR_IF_TRUE(condition) \
+	{                             \
+		if (condition)            \
+			return FAILURE;       \
+	}
+#define RET_IF_ERR(Func)        \
+	{                           \
+		int iRetVal = (Func);   \
+		if (SUCCESS != iRetVal) \
+			return iRetVal;     \
+	}
+
+#define AP_SSID		Roomba
+#define AP_PASSWORD roooooooomba
+
+#define LIDAR_MAX_RANGE	   500
+#define LIDAR_OUT_OF_RANGE 8190
+
 
 //*****************************************************************************
 //                 GLOBAL VARIABLES -- Start
 //*****************************************************************************
 #if defined(ccs)
-extern void (* const g_pfnVectors[])(void);
+extern void (*const g_pfnVectors[])(void);
 #endif
 #if defined(ewarm)
 extern uVectorEntry __vector_table;
@@ -105,9 +118,8 @@ extern uVectorEntry __vector_table;
 //                 GLOBAL VARIABLES -- End
 //*****************************************************************************
 
-
 //****************************************************************************
-//                      LOCAL FUNCTION DEFINITIONS                          
+//                      LOCAL FUNCTION DEFINITIONS
 //****************************************************************************
 
 //*****************************************************************************
@@ -117,12 +129,10 @@ extern uVectorEntry __vector_table;
 //! \param  none
 //!
 //! \return none
-//! 
+//!
 //*****************************************************************************
-void 
-DisplayPrompt()
-{
-    UART_PRINT("\n\rcmd#");
+void DisplayPrompt() {
+	UART_PRINT("\n\rcmd#");
 }
 
 //*****************************************************************************
@@ -132,37 +142,40 @@ DisplayPrompt()
 //! \param  none
 //!
 //! \return none
-//! 
+//!
 //*****************************************************************************
-void 
-DisplayUsage()
-{
-    UART_PRINT("Command Usage \n\r");
-    UART_PRINT("------------- \n\r");
-    UART_PRINT("write <dev_addr> <wrlen> <<byte0> [<byte1> ... ]> <stop>\n\r");
-    UART_PRINT("\t - Write data to the specified i2c device\n\r");
-    UART_PRINT("read  <dev_addr> <rdlen> \n\r\t - Read data frpm the specified "
-                "i2c device\n\r");
-    UART_PRINT("writereg <dev_addr> <reg_offset> <wrlen> <<byte0> [<byte1> ... "
-                "]> \n\r");
-    UART_PRINT("\t - Write data to the specified register of the i2c device\n\r");
-    UART_PRINT("readreg <dev_addr> <reg_offset> <rdlen> \n\r");
-    UART_PRINT("\t - Read data from the specified register of the i2c device\n\r");
-    UART_PRINT("\n\r");
-    UART_PRINT("Parameters \n\r");
-    UART_PRINT("---------- \n\r");
-    UART_PRINT("dev_addr - slave address of the i2c device, a hex value "
-                "preceeded by '0x'\n\r");
-    UART_PRINT("reg_offset - register address in the i2c device, a hex value "
-                "preceeded by '0x'\n\r");
-    UART_PRINT("wrlen - number of bytes to be written, a decimal value \n\r");
-    UART_PRINT("rdlen - number of bytes to be read, a decimal value \n\r");
-    UART_PRINT("bytex - value of the data to be written, a hex value preceeded "
-                "by '0x'\n\r");
-    UART_PRINT("stop - number of stop bits, 0 or 1\n\r");
-    UART_PRINT("--------------------------------------------------------------"
-                "--------------- \n\r\n\r");
-
+void DisplayUsage() {
+	UART_PRINT("Command Usage \n\r");
+	UART_PRINT("------------- \n\r");
+	UART_PRINT("write <dev_addr> <wrlen> <<byte0> [<byte1> ... ]> <stop>\n\r");
+	UART_PRINT("\t - Write data to the specified i2c device\n\r");
+	UART_PRINT(
+		"read  <dev_addr> <rdlen> \n\r\t - Read data frpm the specified "
+		"i2c device\n\r");
+	UART_PRINT(
+		"writereg <dev_addr> <reg_offset> <wrlen> <<byte0> [<byte1> ... "
+		"]> \n\r");
+	UART_PRINT("\t - Write data to the specified register of the i2c device\n\r");
+	UART_PRINT("readreg <dev_addr> <reg_offset> <rdlen> \n\r");
+	UART_PRINT("\t - Read data from the specified register of the i2c device\n\r");
+	UART_PRINT("\n\r");
+	UART_PRINT("Parameters \n\r");
+	UART_PRINT("---------- \n\r");
+	UART_PRINT(
+		"dev_addr - slave address of the i2c device, a hex value "
+		"preceeded by '0x'\n\r");
+	UART_PRINT(
+		"reg_offset - register address in the i2c device, a hex value "
+		"preceeded by '0x'\n\r");
+	UART_PRINT("wrlen - number of bytes to be written, a decimal value \n\r");
+	UART_PRINT("rdlen - number of bytes to be read, a decimal value \n\r");
+	UART_PRINT(
+		"bytex - value of the data to be written, a hex value preceeded "
+		"by '0x'\n\r");
+	UART_PRINT("stop - number of stop bits, 0 or 1\n\r");
+	UART_PRINT(
+		"--------------------------------------------------------------"
+		"--------------- \n\r\n\r");
 }
 
 //*****************************************************************************
@@ -173,24 +186,20 @@ DisplayUsage()
 //! \param  ucLen is the length of the data to be displayed
 //!
 //! \return none
-//! 
+//!
 //*****************************************************************************
-void 
-DisplayBuffer(unsigned char *pucDataBuf, unsigned char ucLen)
-{
-    unsigned char ucBufIndx = 0;
-    UART_PRINT("Read contents");
-    UART_PRINT("\n\r");
-    while(ucBufIndx < ucLen)
-    {
-        UART_PRINT(" 0x%x, ", pucDataBuf[ucBufIndx]);
-        ucBufIndx++;
-        if((ucBufIndx % 8) == 0)
-        {
-            UART_PRINT("\n\r");
-        }
-    }
-    UART_PRINT("\n\r");
+void DisplayBuffer(unsigned char *pucDataBuf, unsigned char ucLen) {
+	unsigned char ucBufIndx = 0;
+	UART_PRINT("Read contents");
+	UART_PRINT("\n\r");
+	while (ucBufIndx < ucLen) {
+		UART_PRINT(" 0x%x, ", pucDataBuf[ucBufIndx]);
+		ucBufIndx++;
+		if ((ucBufIndx % 8) == 0) {
+			UART_PRINT("\n\r");
+		}
+	}
+	UART_PRINT("\n\r");
 }
 
 //*****************************************************************************
@@ -203,14 +212,12 @@ DisplayBuffer(unsigned char *pucDataBuf, unsigned char ucLen)
 //!
 //*****************************************************************************
 static void
-DisplayBanner(char * AppName)
-{
-
-    Report("\n\n\n\r");
-    Report("\t\t *************************************************\n\r");
-    Report("\t\t      CC3200 %s Application       \n\r", AppName);
-    Report("\t\t *************************************************\n\r");
-    Report("\n\n\n\r");
+DisplayBanner(char *AppName) {
+	Report("\n\n\n\r");
+	Report("\t\t *************************************************\n\r");
+	Report("\t\t      CC3200 %s Application       \n\r", AppName);
+	Report("\t\t *************************************************\n\r");
+	Report("\n\n\n\r");
 }
 
 //****************************************************************************
@@ -218,57 +225,52 @@ DisplayBanner(char * AppName)
 //! Parses the read command parameters and invokes the I2C APIs
 //!
 //! \param pcInpString pointer to the user command parameters
-//! 
-//! This function  
+//!
+//! This function
 //!    1. Parses the read command parameters.
 //!    2. Invokes the corresponding I2C APIs
 //!
 //! \return 0: Success, < 0: Failure.
 //
 //****************************************************************************
-int
-ProcessReadCommand(char *pcInpString)
-{
-    unsigned char ucDevAddr, ucLen;
-    unsigned char aucDataBuf[256];
-    char *pcErrPtr;
-    int iRetVal;
+int ProcessReadCommand(char *pcInpString) {
+	unsigned char ucDevAddr, ucLen;
+	unsigned char aucDataBuf[256];
+	char *pcErrPtr;
+	int iRetVal;
 
-    //
-    // Get the device address
-    //
-    pcInpString = strtok(NULL, " ");
-    RETERR_IF_TRUE(pcInpString == NULL);
-    ucDevAddr = (unsigned char)strtoul(pcInpString+2, &pcErrPtr, 16);
-    //
-    // Get the length of data to be read
-    //
-    pcInpString = strtok(NULL, " ");
-    RETERR_IF_TRUE(pcInpString == NULL);
-    ucLen = (unsigned char)strtoul(pcInpString, &pcErrPtr, 10);
-    //RETERR_IF_TRUE(ucLen > sizeof(aucDataBuf));
-    
-    //
-    // Read the specified length of data
-    //
-    iRetVal = I2C_IF_Read(ucDevAddr, aucDataBuf, ucLen);
+	//
+	// Get the device address
+	//
+	pcInpString = strtok(NULL, " ");
+	RETERR_IF_TRUE(pcInpString == NULL);
+	ucDevAddr = (unsigned char)strtoul(pcInpString + 2, &pcErrPtr, 16);
+	//
+	// Get the length of data to be read
+	//
+	pcInpString = strtok(NULL, " ");
+	RETERR_IF_TRUE(pcInpString == NULL);
+	ucLen = (unsigned char)strtoul(pcInpString, &pcErrPtr, 10);
+	// RETERR_IF_TRUE(ucLen > sizeof(aucDataBuf));
 
-    if(iRetVal == SUCCESS)
-    {
-        UART_PRINT("I2C Read complete\n\r");
-        
-        //
-        // Display the buffer over UART on successful write
-        //
-        DisplayBuffer(aucDataBuf, ucLen);
-    }
-    else
-    {
-        UART_PRINT("I2C Read failed\n\r");
-        return FAILURE;
-    }
+	//
+	// Read the specified length of data
+	//
+	iRetVal = I2C_IF_Read(ucDevAddr, aucDataBuf, ucLen);
 
-    return SUCCESS;
+	if (iRetVal == SUCCESS) {
+		UART_PRINT("I2C Read complete\n\r");
+
+		//
+		// Display the buffer over UART on successful write
+		//
+		DisplayBuffer(aucDataBuf, ucLen);
+	} else {
+		UART_PRINT("I2C Read failed\n\r");
+		return FAILURE;
+	}
+
+	return SUCCESS;
 }
 
 //****************************************************************************
@@ -277,61 +279,59 @@ ProcessReadCommand(char *pcInpString)
 //! i2c readreg 0x<dev_addr> 0x<reg_offset> <rdlen>
 //!
 //! \param pcInpString pointer to the readreg command parameters
-//! 
-//! This function  
+//!
+//! This function
 //!    1. Parses the readreg command parameters.
 //!    2. Invokes the corresponding I2C APIs
 //!
 //! \return 0: Success, < 0: Failure.
 //
 //****************************************************************************
-int
-ProcessReadRegCommand(char *pcInpString)
-{
-    unsigned char ucDevAddr, ucRegOffset, ucRdLen;
-    unsigned char aucRdDataBuf[256];
-    char *pcErrPtr;
+int ProcessReadRegCommand(char *pcInpString) {
+	unsigned char ucDevAddr, ucRegOffset, ucRdLen;
+	unsigned char aucRdDataBuf[256];
+	char *pcErrPtr;
 
-    //
-    // Get the device address
-    //
-    pcInpString = strtok(NULL, " ");
-    RETERR_IF_TRUE(pcInpString == NULL);
-    ucDevAddr = (unsigned char)strtoul(pcInpString+2, &pcErrPtr, 16);
-    //
-    // Get the register offset address
-    //
-    pcInpString = strtok(NULL, " ");
-    RETERR_IF_TRUE(pcInpString == NULL);
-    ucRegOffset = (unsigned char)strtoul(pcInpString+2, &pcErrPtr, 16);
+	//
+	// Get the device address
+	//
+	pcInpString = strtok(NULL, " ");
+	RETERR_IF_TRUE(pcInpString == NULL);
+	ucDevAddr = (unsigned char)strtoul(pcInpString + 2, &pcErrPtr, 16);
+	//
+	// Get the register offset address
+	//
+	pcInpString = strtok(NULL, " ");
+	RETERR_IF_TRUE(pcInpString == NULL);
+	ucRegOffset = (unsigned char)strtoul(pcInpString + 2, &pcErrPtr, 16);
 
-    //
-    // Get the length of data to be read
-    //
-    pcInpString = strtok(NULL, " ");
-    RETERR_IF_TRUE(pcInpString == NULL);
-    ucRdLen = (unsigned char)strtoul(pcInpString, &pcErrPtr, 10);
-    //RETERR_IF_TRUE(ucLen > sizeof(aucDataBuf));
+	//
+	// Get the length of data to be read
+	//
+	pcInpString = strtok(NULL, " ");
+	RETERR_IF_TRUE(pcInpString == NULL);
+	ucRdLen = (unsigned char)strtoul(pcInpString, &pcErrPtr, 10);
+	// RETERR_IF_TRUE(ucLen > sizeof(aucDataBuf));
 
-    //
-    // Write the register address to be read from.
-    // Stop bit implicitly assumed to be 0.
-    //
-    RET_IF_ERR(I2C_IF_Write(ucDevAddr,&ucRegOffset,1,0));
-    
-    //
-    // Read the specified length of data
-    //
-    RET_IF_ERR(I2C_IF_Read(ucDevAddr, &aucRdDataBuf[0], ucRdLen));
+	//
+	// Write the register address to be read from.
+	// Stop bit implicitly assumed to be 0.
+	//
+	RET_IF_ERR(I2C_IF_Write(ucDevAddr, &ucRegOffset, 1, 0));
 
-    UART_PRINT("I2C Read From address complete\n\r");
-    
-    //
-    // Display the buffer over UART on successful readreg
-    //
-    DisplayBuffer(aucRdDataBuf, ucRdLen);
+	//
+	// Read the specified length of data
+	//
+	RET_IF_ERR(I2C_IF_Read(ucDevAddr, &aucRdDataBuf[0], ucRdLen));
 
-    return SUCCESS;
+	UART_PRINT("I2C Read From address complete\n\r");
+
+	//
+	// Display the buffer over UART on successful readreg
+	//
+	DisplayBuffer(aucRdDataBuf, ucRdLen);
+
+	return SUCCESS;
 }
 
 //****************************************************************************
@@ -340,67 +340,64 @@ ProcessReadRegCommand(char *pcInpString)
 //! i2c writereg 0x<dev_addr> 0x<reg_offset> <wrlen> <0x<byte0> [0x<byte1> ...]>
 //!
 //! \param pcInpString pointer to the readreg command parameters
-//! 
-//! This function  
+//!
+//! This function
 //!    1. Parses the writereg command parameters.
 //!    2. Invokes the corresponding I2C APIs
 //!
 //! \return 0: Success, < 0: Failure.
 //
 //****************************************************************************
-int
-ProcessWriteRegCommand(char *pcInpString)
-{
-    unsigned char ucDevAddr, ucRegOffset, ucWrLen;
-    unsigned char aucDataBuf[256];
-    char *pcErrPtr;
-    int iLoopCnt = 0;
+int ProcessWriteRegCommand(char *pcInpString) {
+	unsigned char ucDevAddr, ucRegOffset, ucWrLen;
+	unsigned char aucDataBuf[256];
+	char *pcErrPtr;
+	int iLoopCnt = 0;
 
-    //
-    // Get the device address
-    //
-    pcInpString = strtok(NULL, " ");
-    RETERR_IF_TRUE(pcInpString == NULL);
-    ucDevAddr = (unsigned char)strtoul(pcInpString+2, &pcErrPtr, 16);
-    
-    //
-    // Get the register offset to be written
-    //
-    pcInpString = strtok(NULL, " ");
-    RETERR_IF_TRUE(pcInpString == NULL);
-    ucRegOffset = (unsigned char)strtoul(pcInpString+2, &pcErrPtr, 16);
-    aucDataBuf[iLoopCnt] = ucRegOffset;
-    iLoopCnt++;
-    
-    //
-    // Get the length of data to be written
-    //
-    pcInpString = strtok(NULL, " ");
-    RETERR_IF_TRUE(pcInpString == NULL);
-    ucWrLen = (unsigned char)strtoul(pcInpString, &pcErrPtr, 10);
-    //RETERR_IF_TRUE(ucWrLen > sizeof(aucDataBuf));
-   
-    //
-    // Get the bytes to be written
-    //
-    for(; iLoopCnt < ucWrLen + 1; iLoopCnt++)
-    {
-        //
-        // Store the data to be written
-        //
-        pcInpString = strtok(NULL, " ");
-        RETERR_IF_TRUE(pcInpString == NULL);
-        aucDataBuf[iLoopCnt] = 
-                (unsigned char)strtoul(pcInpString+2, &pcErrPtr, 16);
-    }
-    //
-    // Write the data values.
-    //
-    RET_IF_ERR(I2C_IF_Write(ucDevAddr,&aucDataBuf[0],ucWrLen+1,1));
+	//
+	// Get the device address
+	//
+	pcInpString = strtok(NULL, " ");
+	RETERR_IF_TRUE(pcInpString == NULL);
+	ucDevAddr = (unsigned char)strtoul(pcInpString + 2, &pcErrPtr, 16);
 
-    UART_PRINT("I2C Write To address complete\n\r");
+	//
+	// Get the register offset to be written
+	//
+	pcInpString = strtok(NULL, " ");
+	RETERR_IF_TRUE(pcInpString == NULL);
+	ucRegOffset = (unsigned char)strtoul(pcInpString + 2, &pcErrPtr, 16);
+	aucDataBuf[iLoopCnt] = ucRegOffset;
+	iLoopCnt++;
 
-    return SUCCESS;
+	//
+	// Get the length of data to be written
+	//
+	pcInpString = strtok(NULL, " ");
+	RETERR_IF_TRUE(pcInpString == NULL);
+	ucWrLen = (unsigned char)strtoul(pcInpString, &pcErrPtr, 10);
+	// RETERR_IF_TRUE(ucWrLen > sizeof(aucDataBuf));
+
+	//
+	// Get the bytes to be written
+	//
+	for (; iLoopCnt < ucWrLen + 1; iLoopCnt++) {
+		//
+		// Store the data to be written
+		//
+		pcInpString = strtok(NULL, " ");
+		RETERR_IF_TRUE(pcInpString == NULL);
+		aucDataBuf[iLoopCnt] =
+			(unsigned char)strtoul(pcInpString + 2, &pcErrPtr, 16);
+	}
+	//
+	// Write the data values.
+	//
+	RET_IF_ERR(I2C_IF_Write(ucDevAddr, &aucDataBuf[0], ucWrLen + 1, 1));
+
+	UART_PRINT("I2C Write To address complete\n\r");
+
+	return SUCCESS;
 }
 
 //****************************************************************************
@@ -408,70 +405,64 @@ ProcessWriteRegCommand(char *pcInpString)
 //! Parses the write command parameters and invokes the I2C APIs
 //!
 //! \param pcInpString pointer to the write command parameters
-//! 
-//! This function  
+//!
+//! This function
 //!    1. Parses the write command parameters.
 //!    2. Invokes the corresponding I2C APIs
 //!
 //! \return 0: Success, < 0: Failure.
 //
 //****************************************************************************
-int
-ProcessWriteCommand(char *pcInpString)
-{
-    unsigned char ucDevAddr, ucStopBit, ucLen;
-    unsigned char aucDataBuf[256];
-    char *pcErrPtr;
-    int iRetVal, iLoopCnt;
+int ProcessWriteCommand(char *pcInpString) {
+	unsigned char ucDevAddr, ucStopBit, ucLen;
+	unsigned char aucDataBuf[256];
+	char *pcErrPtr;
+	int iRetVal, iLoopCnt;
 
-    //
-    // Get the device address
-    //
-    pcInpString = strtok(NULL, " ");
-    RETERR_IF_TRUE(pcInpString == NULL);
-    ucDevAddr = (unsigned char)strtoul(pcInpString+2, &pcErrPtr, 16);
-    
-    //
-    // Get the length of data to be written
-    //
-    pcInpString = strtok(NULL, " ");
-    RETERR_IF_TRUE(pcInpString == NULL);
-    ucLen = (unsigned char)strtoul(pcInpString, &pcErrPtr, 10);
-    //RETERR_IF_TRUE(ucLen > sizeof(aucDataBuf));
+	//
+	// Get the device address
+	//
+	pcInpString = strtok(NULL, " ");
+	RETERR_IF_TRUE(pcInpString == NULL);
+	ucDevAddr = (unsigned char)strtoul(pcInpString + 2, &pcErrPtr, 16);
 
-    for(iLoopCnt = 0; iLoopCnt < ucLen; iLoopCnt++)
-    {
-        //
-        // Store the data to be written
-        //
-        pcInpString = strtok(NULL, " ");
-        RETERR_IF_TRUE(pcInpString == NULL);
-        aucDataBuf[iLoopCnt] = 
-                (unsigned char)strtoul(pcInpString+2, &pcErrPtr, 16);
-    }
-    
-    //
-    // Get the stop bit
-    //
-    pcInpString = strtok(NULL, " ");
-    RETERR_IF_TRUE(pcInpString == NULL);
-    ucStopBit = (unsigned char)strtoul(pcInpString, &pcErrPtr, 10);
-    
-    //
-    // Write the data to the specified address
-    //
-    iRetVal = I2C_IF_Write(ucDevAddr, aucDataBuf, ucLen, ucStopBit);
-    if(iRetVal == SUCCESS)
-    {
-        UART_PRINT("I2C Write complete\n\r");
-    }
-    else
-    {
-        UART_PRINT("I2C Write failed\n\r");
-        return FAILURE;
-    }
+	//
+	// Get the length of data to be written
+	//
+	pcInpString = strtok(NULL, " ");
+	RETERR_IF_TRUE(pcInpString == NULL);
+	ucLen = (unsigned char)strtoul(pcInpString, &pcErrPtr, 10);
+	// RETERR_IF_TRUE(ucLen > sizeof(aucDataBuf));
 
-    return SUCCESS;
+	for (iLoopCnt = 0; iLoopCnt < ucLen; iLoopCnt++) {
+		//
+		// Store the data to be written
+		//
+		pcInpString = strtok(NULL, " ");
+		RETERR_IF_TRUE(pcInpString == NULL);
+		aucDataBuf[iLoopCnt] =
+			(unsigned char)strtoul(pcInpString + 2, &pcErrPtr, 16);
+	}
+
+	//
+	// Get the stop bit
+	//
+	pcInpString = strtok(NULL, " ");
+	RETERR_IF_TRUE(pcInpString == NULL);
+	ucStopBit = (unsigned char)strtoul(pcInpString, &pcErrPtr, 10);
+
+	//
+	// Write the data to the specified address
+	//
+	iRetVal = I2C_IF_Write(ucDevAddr, aucDataBuf, ucLen, ucStopBit);
+	if (iRetVal == SUCCESS) {
+		UART_PRINT("I2C Write complete\n\r");
+	} else {
+		UART_PRINT("I2C Write failed\n\r");
+		return FAILURE;
+	}
+
+	return SUCCESS;
 }
 
 //****************************************************************************
@@ -479,63 +470,50 @@ ProcessWriteCommand(char *pcInpString)
 //! Parses the user input command and invokes the I2C APIs
 //!
 //! \param pcCmdBuffer pointer to the user command
-//! 
-//! This function  
+//!
+//! This function
 //!    1. Parses the user command.
 //!    2. Invokes the corresponding I2C APIs
 //!
 //! \return 0: Success, < 0: Failure.
 //
 //****************************************************************************
-int
-ParseNProcessCmd(char *pcCmdBuffer)
-{
-    char *pcInpString;
-    int iRetVal = FAILURE;
+int ParseNProcessCmd(char *pcCmdBuffer) {
+	char *pcInpString;
+	int iRetVal = FAILURE;
 
-    pcInpString = strtok(pcCmdBuffer, " \n\r");
-    if(pcInpString != NULL)
+	pcInpString = strtok(pcCmdBuffer, " \n\r");
+	if (pcInpString != NULL)
 
-    {
-           
-        if(!strcmp(pcInpString, "read"))
-        {
-            //
-            // Invoke the read command handler
-            //
-            iRetVal = ProcessReadCommand(pcInpString);
-        }
-        else if(!strcmp(pcInpString, "readreg"))
-        {
-            //
-            // Invoke the readreg command handler
-            //
-            iRetVal = ProcessReadRegCommand(pcInpString);
-        }
-        else if(!strcmp(pcInpString, "writereg"))
-        {
-            //
-            // Invoke the writereg command handler
-            //
-            iRetVal = ProcessWriteRegCommand(pcInpString);
-        }
-        else if(!strcmp(pcInpString, "write"))
-        {
-            //
-            // Invoke the write command handler
-            //
-            iRetVal = ProcessWriteCommand(pcInpString);
-        }
-        else
-        {
-            UART_PRINT("Unsupported command\n\r");
-            return FAILURE;
-        }
-    }
+	{
+		if (!strcmp(pcInpString, "read")) {
+			//
+			// Invoke the read command handler
+			//
+			iRetVal = ProcessReadCommand(pcInpString);
+		} else if (!strcmp(pcInpString, "readreg")) {
+			//
+			// Invoke the readreg command handler
+			//
+			iRetVal = ProcessReadRegCommand(pcInpString);
+		} else if (!strcmp(pcInpString, "writereg")) {
+			//
+			// Invoke the writereg command handler
+			//
+			iRetVal = ProcessWriteRegCommand(pcInpString);
+		} else if (!strcmp(pcInpString, "write")) {
+			//
+			// Invoke the write command handler
+			//
+			iRetVal = ProcessWriteCommand(pcInpString);
+		} else {
+			UART_PRINT("Unsupported command\n\r");
+			return FAILURE;
+		}
+	}
 
-    return iRetVal;
+	return iRetVal;
 }
-
 
 //*****************************************************************************
 //
@@ -547,27 +525,26 @@ ParseNProcessCmd(char *pcCmdBuffer)
 //
 //*****************************************************************************
 static void
-BoardInit(void)
-{
+BoardInit(void) {
 /* In case of TI-RTOS vector table is initialize by OS itself */
 #ifndef USE_TIRTOS
-    //
-    // Set vector table base
-    //
+	//
+	// Set vector table base
+	//
 #if defined(ccs)
-    MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
+	MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
 #endif
 #if defined(ewarm)
-    MAP_IntVTableBaseSet((unsigned long)&__vector_table);
+	MAP_IntVTableBaseSet((unsigned long)&__vector_table);
 #endif
 #endif
-    //
-    // Enable Processor
-    //
-    MAP_IntMasterEnable();
-    MAP_IntEnable(FAULT_SYSTICK);
+	//
+	// Enable Processor
+	//
+	MAP_IntMasterEnable();
+	MAP_IntEnable(FAULT_SYSTICK);
 
-    PRCMCC3200MCUInit();
+	PRCMCC3200MCUInit();
 }
 
 VL53L0X_Dev_t dev;
@@ -581,134 +558,127 @@ VL53L0X_DeviceInfo_t DeviceInfo;
 //! \param  None
 //!
 //! \return None
-//! 
+//!
 //*****************************************************************************
-void main()
-{
-    int iRetVal;
-    char acCmdStore[512];
-    
-    //
-    // Initialize board configurations
-    //
-    BoardInit();
-    
-    //
-    // Configure the pinmux settings for the peripherals exercised
-    //
-    PinMuxConfig();
-    
-    //
-    // Configuring UART
-    //
-    InitTerm();
-    
-    //
-    // I2C Init
-    //
-    I2C_IF_Open(I2C_MASTER_MODE_FST);
-    
-    uint32_t refSpadCount;
-    uint8_t isApertureSpads;
-    uint8_t VhvSettings;
-    uint8_t PhaseCal;
+void main() {
+	int iRetVal;
+	char acCmdStore[512];
 
-    VL53L0X_Error status;
+	//
+	// Initialize board configurations
+	//
+	BoardInit();
 
-    pDev->I2cDevAddr = 0x29;
-    pDev->comms_type = 1;
-    pDev->comms_speed_khz = 400;
-    VL53L0X_WaitDeviceBooted(pDev);
+	//
+	// Configure the pinmux settings for the peripherals exercised
+	//
+	PinMuxConfig();
 
-    UART_PRINT("-----\tSTARTING DEVICE\t-----\r\n");
+	//
+	// Configuring UART
+	//
+	InitTerm();
 
-    status = VL53L0X_DataInit(pDev);
-    if (status != VL53L0X_ERROR_NONE) {
-        UART_PRINT("You fucky upy\r\n");
-    }
+	//
+	// I2C Init
+	//
+	I2C_IF_Open(I2C_MASTER_MODE_FST);
 
-    status = VL53L0X_GetDeviceInfo(pDev, &DeviceInfo);
-    if (status != VL53L0X_ERROR_NONE) {
-        UART_PRINT("You fucky upy\r\n");
-    }
+	uint32_t refSpadCount;
+	uint8_t isApertureSpads;
+	uint8_t VhvSettings;
+	uint8_t PhaseCal;
 
-    status = VL53L0X_StaticInit(pDev);
-    if (status != VL53L0X_ERROR_NONE) {
-        UART_PRINT("You fuck up!\r\n");
-    }
+	VL53L0X_Error status;
 
-    status = VL53L0X_PerformRefSpadManagement(pDev, &refSpadCount, &isApertureSpads);
-    if (status != VL53L0X_ERROR_NONE) {
-        UART_PRINT("You fucky!\r\n");
-    }
+	pDev->I2cDevAddr = 0x29;
+	pDev->comms_type = 1;
+	pDev->comms_speed_khz = 400;
+	VL53L0X_WaitDeviceBooted(pDev);
 
-    status = VL53L0X_PerformRefCalibration(pDev, &VhvSettings, &PhaseCal);
-    if (status != VL53L0X_ERROR_NONE) {
-        UART_PRINT("You very up\r\n");
-    }
+	UART_PRINT("-----\tSTARTING DEVICE\t-----\r\n");
 
-    status = VL53L0X_SetDeviceMode(pDev, VL53L0X_DEVICEMODE_SINGLE_RANGING);
-    if (status != VL53L0X_ERROR_NONE) {
-        UART_PRINT("You done upy\r\n");
-    }
-    //
-    // Display the banner followed by the usage description
-    //
-//    DisplayBanner(APP_NAME);
-//    DisplayUsage();
+	status = VL53L0X_DataInit(pDev);
+	if (status != VL53L0X_ERROR_NONE) {
+		UART_PRINT("You fucky upy\r\n");
+	}
 
-    while (1) {
-        VL53L0X_RangingMeasurementData_t measure;
-        status = VL53L0X_PerformSingleRangingMeasurement(pDev, &measure);
-        if (status != VL53L0X_ERROR_NONE) {
-            UART_PRINT("You very very fucky upy\r\n");
-            while (1);
-        }
+	status = VL53L0X_GetDeviceInfo(pDev, &DeviceInfo);
+	if (status != VL53L0X_ERROR_NONE) {
+		UART_PRINT("You fucky upy\r\n");
+	}
 
-        uint16_t distance = measure.RangeMilliMeter;
+	status = VL53L0X_StaticInit(pDev);
+	if (status != VL53L0X_ERROR_NONE) {
+		UART_PRINT("You fuck up!\r\n");
+	}
 
-        UART_PRINT("Distance: %d\r\n", distance);
-    }
+	status = VL53L0X_PerformRefSpadManagement(pDev, &refSpadCount, &isApertureSpads);
+	if (status != VL53L0X_ERROR_NONE) {
+		UART_PRINT("You fucky!\r\n");
+	}
 
-    while(FOREVER)
-    {
-      //
-      // Provide a prompt for the user to enter a command
-      //
-      DisplayPrompt();
-      
-      //
-      // Get the user command line
-      //
-      iRetVal = GetCmd(acCmdStore, sizeof(acCmdStore));
+	status = VL53L0X_PerformRefCalibration(pDev, &VhvSettings, &PhaseCal);
+	if (status != VL53L0X_ERROR_NONE) {
+		UART_PRINT("You very up\r\n");
+	}
 
-      if(iRetVal < 0)
-      {
-          //
-          // Error in parsing the command as length is exceeded.
-          //
-          UART_PRINT("Command length exceeded 512 bytes \n\r");
-          DisplayUsage();
-      }
-      else if(iRetVal == 0)
-      {
-          //
-          // No input. Just an enter pressed probably. Display a prompt.
-          //
-      }
-      else
-      {
-          //
-          // Parse the user command and try to process it.
-          //
-          iRetVal = ParseNProcessCmd(acCmdStore);
-          if(iRetVal < 0)
-          {
-              UART_PRINT("Error in processing command\n\r");
-              DisplayUsage();
-          }
-      }
-    }
+	status = VL53L0X_SetDeviceMode(pDev, VL53L0X_DEVICEMODE_SINGLE_RANGING);
+	if (status != VL53L0X_ERROR_NONE) {
+		UART_PRINT("You done upy\r\n");
+	}
+	//
+	// Display the banner followed by the usage description
+	//
+	//    DisplayBanner(APP_NAME);
+	//    DisplayUsage();
+
+	while (1) {
+		VL53L0X_RangingMeasurementData_t measure;
+		status = VL53L0X_PerformSingleRangingMeasurement(pDev, &measure);
+		if (status != VL53L0X_ERROR_NONE) {
+			UART_PRINT("You very very fucky upy\r\n");
+			while (1)
+				;
+		}
+
+		uint16_t distance = measure.RangeMilliMeter;
+
+		UART_PRINT("Distance: %d\r\n", distance);
+	}
+
+	while (FOREVER) {
+		//
+		// Provide a prompt for the user to enter a command
+		//
+		DisplayPrompt();
+
+		//
+		// Get the user command line
+		//
+		iRetVal = GetCmd(acCmdStore, sizeof(acCmdStore));
+
+		if (iRetVal < 0) {
+			//
+			// Error in parsing the command as length is exceeded.
+			//
+			UART_PRINT("Command length exceeded 512 bytes \n\r");
+			DisplayUsage();
+		} else if (iRetVal == 0) {
+			//
+			// No input. Just an enter pressed probably. Display a prompt.
+			//
+		} else {
+			//
+			// Parse the user command and try to process it.
+			//
+			iRetVal = ParseNProcessCmd(acCmdStore);
+			if (iRetVal < 0) {
+				UART_PRINT("Error in processing command\n\r");
+				DisplayUsage();
+			}
+		}
+	}
 }
 
 //*****************************************************************************
@@ -717,5 +687,3 @@ void main()
 //! @
 //
 //*****************************************************************************
-
-

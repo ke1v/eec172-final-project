@@ -1,0 +1,11 @@
+# .clang-format for aligning defines without reordering includes
+BasedOnStyle: LLVM        # start with Google style as a base
+IndentWidth: 4
+TabWidth: 4
+UseTab: ForIndentation
+ColumnLimit: 0              # disable line wrapping for simplicity
+
+# --- Preprocessor ---
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: true    # <<< key: aligns #define values
+SortIncludes: false             # <<< key: keep includes in original order
