@@ -66,6 +66,7 @@
 #include "prcm.h"
 #include "utils.h"
 #include "uart.h"
+#include "gpio.h"
 
 // Common interface includes
 #include "uart_if.h"
@@ -86,16 +87,16 @@
 #define FAILURE             -1
 #define SUCCESS             0
 #define RETERR_IF_TRUE(condition) \
-	{                             \
-		if (condition)            \
-			return FAILURE;       \
-	}
+    {                             \
+        if (condition)            \
+            return FAILURE;       \
+    }
 #define RET_IF_ERR(Func)        \
-	{                           \
-		int iRetVal = (Func);   \
-		if (SUCCESS != iRetVal) \
-			return iRetVal;     \
-	}
+    {                           \
+        int iRetVal = (Func);   \
+        if (SUCCESS != iRetVal) \
+            return iRetVal;     \
+    }
 
 #define LIDAR_MAX_RANGE    500
 #define LIDAR_OUT_OF_RANGE 8190
@@ -113,7 +114,6 @@ extern uVectorEntry __vector_table;
 //                 GLOBAL VARIABLES -- End
 //*****************************************************************************
 
-
 //*****************************************************************************
 //
 //! Board Initialization & Configuration
@@ -127,122 +127,246 @@ static void
 BoardInit(void) {
 /* In case of TI-RTOS vector table is initialize by OS itself */
 #ifndef USE_TIRTOS
-	//
-	// Set vector table base
-	//
+    //
+    // Set vector table base
+    //
 #if defined(ccs)
-	MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
+    MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
 #endif
 #if defined(ewarm)
-	MAP_IntVTableBaseSet((unsigned long)&__vector_table);
+    MAP_IntVTableBaseSet((unsigned long)&__vector_table);
 #endif
 #endif
-	//
-	// Enable Processor
-	//
-	MAP_IntMasterEnable();
-	MAP_IntEnable(FAULT_SYSTICK);
+    //
+    // Enable Processor
+    //
+    MAP_IntMasterEnable();
+    MAP_IntEnable(FAULT_SYSTICK);
 
-	PRCMCC3200MCUInit();
+    PRCMCC3200MCUInit();
 }
 
 //*****************************************************************************
 //                            LiDAR -- Start
 //*****************************************************************************
-VL53L0X_Dev_t dev;
-VL53L0X_DeviceInfo_t DeviceInfo;
-
-void LIDAR_INIT() {
-	VL53L0X_Dev_t *pDev = &dev;
-
-	uint32_t refSpadCount;
-	uint8_t isApertureSpads;
-	uint8_t VhvSettings;
-	uint8_t PhaseCal;
-
-	VL53L0X_Error status;
-
-	pDev->I2cDevAddr = 0x29;
-	pDev->comms_type = 1;
-	pDev->comms_speed_khz = 400;
-
-	VL53L0X_WaitDeviceBooted(pDev);
-
-	status = VL53L0X_DataInit(pDev);
-	if (status != VL53L0X_ERROR_NONE) {
-		UART_PRINT("VL53L0X_DataInit Failed\r\n");
-	}
-
-	status = VL53L0X_GetDeviceInfo(pDev, &DeviceInfo);
-	if (status != VL53L0X_ERROR_NONE) {
-		UART_PRINT("VL53L0X_GetDeviceInfo Failed\r\n");
-	}
-
-	status = VL53L0X_StaticInit(pDev);
-	if (status != VL53L0X_ERROR_NONE) {
-		UART_PRINT("VL53L0X_StaticInit Failed\r\n");
-	}
-
-	status = VL53L0X_PerformRefSpadManagement(pDev, &refSpadCount, &isApertureSpads);
-	if (status != VL53L0X_ERROR_NONE) {
-		UART_PRINT("VL53L0X_PerformRefSpadManagement Failed\r\n");
-	}
-
-	status = VL53L0X_PerformRefCalibration(pDev, &VhvSettings, &PhaseCal);
-	if (status != VL53L0X_ERROR_NONE) {
-		UART_PRINT("VL53L0X_PerformRefCalibration Failed\r\n");
-	}
-
-	status = VL53L0X_SetDeviceMode(pDev, VL53L0X_DEVICEMODE_SINGLE_RANGING);
-	if (status != VL53L0X_ERROR_NONE) {
-		UART_PRINT("VL53L0X_SetDeviceMode Failed\r\n");
-	}
-}
-
-uint16_t LIDAR_GET_RANGE_MILLIMETER() {
-	VL53L0X_RangingMeasurementData_t measure;
-	VL53L0X_Error status;
-
-	status = VL53L0X_PerformSingleRangingMeasurement(pDev, &measure);
-	if (status != VL53L0X_ERROR_NONE) {
-		UART_PRINT("VL53L0X_PerformSingleRangingMeasurement Failed\r\n");
-	}
-
-	return = measure.RangeMilliMeter;
-}
+//VL53L0X_Dev_t dev;
+//VL53L0X_DeviceInfo_t DeviceInfo;
+//
+//void LIDAR_INIT() {
+//    VL53L0X_Dev_t *pDev = &dev;
+//
+//    uint32_t refSpadCount;
+//    uint8_t isApertureSpads;
+//    uint8_t VhvSettings;
+//    uint8_t PhaseCal;
+//
+//    VL53L0X_Error status;
+//
+//    pDev->I2cDevAddr = 0x29;
+//    pDev->comms_type = 1;
+//    pDev->comms_speed_khz = 400;
+//
+//    VL53L0X_WaitDeviceBooted(pDev);
+//
+//    status = VL53L0X_DataInit(pDev);
+//    if (status != VL53L0X_ERROR_NONE) {
+//        UART_PRINT("VL53L0X_DataInit Failed\r\n");
+//    }
+//
+//    status = VL53L0X_GetDeviceInfo(pDev, &DeviceInfo);
+//    if (status != VL53L0X_ERROR_NONE) {
+//        UART_PRINT("VL53L0X_GetDeviceInfo Failed\r\n");
+//    }
+//
+//    status = VL53L0X_StaticInit(pDev);
+//    if (status != VL53L0X_ERROR_NONE) {
+//        UART_PRINT("VL53L0X_StaticInit Failed\r\n");
+//    }
+//
+//    status = VL53L0X_PerformRefSpadManagement(pDev, &refSpadCount, &isApertureSpads);
+//    if (status != VL53L0X_ERROR_NONE) {
+//        UART_PRINT("VL53L0X_PerformRefSpadManagement Failed\r\n");
+//    }
+//
+//    status = VL53L0X_PerformRefCalibration(pDev, &VhvSettings, &PhaseCal);
+//    if (status != VL53L0X_ERROR_NONE) {
+//        UART_PRINT("VL53L0X_PerformRefCalibration Failed\r\n");
+//    }
+//
+//    status = VL53L0X_SetDeviceMode(pDev, VL53L0X_DEVICEMODE_SINGLE_RANGING);
+//    if (status != VL53L0X_ERROR_NONE) {
+//        UART_PRINT("VL53L0X_SetDeviceMode Failed\r\n");
+//    }
+//}
+//
+//uint16_t LIDAR_GET_RANGE_MILLIMETER() {
+//    VL53L0X_RangingMeasurementData_t measure;
+//    VL53L0X_Error status;
+//
+//    status = VL53L0X_PerformSingleRangingMeasurement(pDev, &measure);
+//    if (status != VL53L0X_ERROR_NONE) {
+//        UART_PRINT("VL53L0X_PerformSingleRangingMeasurement Failed\r\n");
+//    }
+//
+//    return = measure.RangeMilliMeter;
+//}
 //*****************************************************************************
 //                            LiDAR -- End
 //*****************************************************************************
 
+//*****************************************************************************
+//                            Motor -- Start
+//*****************************************************************************
+// IN1 - Pin 15 - GPIO22
+#define MOTOR_LEFT_IN1_BASE GPIOA2_BASE
+#define MOTOR_LEFT_IN1_PIN  0x40
 
+// IN2 - Pin 64 - GPIO9
+#define MOTOR_LEFT_IN2_BASE GPIOA1_BASE
+#define MOTOR_LEFT_IN2_PIN  0x02
 
+// IN3 - Pin 6 - GPIO7
+#define MOTOR_RIGHT_IN3_BASE GPIOA1_BASE
+#define MOTOR_RIGHT_IN3_PIN  0x80
 
+// IN4 - Pin 45 - GPIO31
+#define MOTOR_RIGHT_IN4_BASE GPIOA3_BASE
+#define MOTOR_RIGHT_IN4_PIN  0x80
 
+void motorStop() {
+    MAP_GPIOPinWrite(MOTOR_LEFT_IN1_BASE, MOTOR_LEFT_IN1_PIN, 0);
+    MAP_GPIOPinWrite(MOTOR_LEFT_IN2_BASE, MOTOR_LEFT_IN2_PIN, 0);
+    MAP_GPIOPinWrite(MOTOR_RIGHT_IN3_BASE, MOTOR_RIGHT_IN3_PIN, 0);
+    MAP_GPIOPinWrite(MOTOR_RIGHT_IN4_BASE, MOTOR_RIGHT_IN4_PIN, 0);
+}
 
+void motorForward() {
+    MAP_GPIOPinWrite(MOTOR_LEFT_IN1_BASE, MOTOR_LEFT_IN1_PIN, MOTOR_LEFT_IN1_PIN);
+    MAP_GPIOPinWrite(MOTOR_LEFT_IN2_BASE, MOTOR_LEFT_IN2_PIN, 0);
+    MAP_GPIOPinWrite(MOTOR_RIGHT_IN3_BASE, MOTOR_RIGHT_IN3_PIN, MOTOR_RIGHT_IN3_PIN);
+    MAP_GPIOPinWrite(MOTOR_RIGHT_IN4_BASE, MOTOR_RIGHT_IN4_PIN, 0);
+}
+
+void motorBackward() {
+    MAP_GPIOPinWrite(MOTOR_LEFT_IN1_BASE, MOTOR_LEFT_IN1_PIN, 0);
+    MAP_GPIOPinWrite(MOTOR_LEFT_IN2_BASE, MOTOR_LEFT_IN2_PIN, MOTOR_LEFT_IN2_PIN);
+    MAP_GPIOPinWrite(MOTOR_RIGHT_IN3_BASE, MOTOR_RIGHT_IN3_PIN, 0);
+    MAP_GPIOPinWrite(MOTOR_RIGHT_IN4_BASE, MOTOR_RIGHT_IN4_PIN, MOTOR_RIGHT_IN4_PIN);
+}
+
+void motorLeft() {
+    MAP_GPIOPinWrite(MOTOR_LEFT_IN1_BASE, MOTOR_LEFT_IN1_PIN, 0);
+    MAP_GPIOPinWrite(MOTOR_LEFT_IN2_BASE, MOTOR_LEFT_IN2_PIN, MOTOR_LEFT_IN2_PIN);
+    MAP_GPIOPinWrite(MOTOR_RIGHT_IN3_BASE, MOTOR_RIGHT_IN3_PIN, MOTOR_RIGHT_IN4_PIN);
+    MAP_GPIOPinWrite(MOTOR_RIGHT_IN4_BASE, MOTOR_RIGHT_IN4_PIN, 0);
+}
+
+void motorRight() {
+    MAP_GPIOPinWrite(MOTOR_LEFT_IN1_BASE, MOTOR_LEFT_IN1_PIN, MOTOR_LEFT_IN1_PIN);
+    MAP_GPIOPinWrite(MOTOR_LEFT_IN2_BASE, MOTOR_LEFT_IN2_PIN, 0);
+    MAP_GPIOPinWrite(MOTOR_RIGHT_IN3_BASE, MOTOR_RIGHT_IN3_PIN, 0);
+    MAP_GPIOPinWrite(MOTOR_RIGHT_IN4_BASE, MOTOR_RIGHT_IN4_PIN, MOTOR_RIGHT_IN4_PIN);
+}
+
+void softPWMDual(int dutyCycle, int cycles) {
+    int i;
+    for (i = 0; i < cycles; i++) {
+        motorForward();
+        MAP_UtilsDelay(dutyCycle * 1000);
+        if (dutyCycle < 100) {
+            motorStop();
+            MAP_UtilsDelay((100 - dutyCycle) * 1000);
+        }
+    }
+}
+
+void softPWMDualBackward(int dutyCycle, int cycles) {
+    int i;
+    for (i = 0; i < cycles; i++) {
+        motorBackward();
+        MAP_UtilsDelay(dutyCycle * 1000);
+        if (dutyCycle < 100) {
+            motorStop();
+            MAP_UtilsDelay((100 - dutyCycle) * 1000);
+        }
+    }
+}
+
+void softPWMDualLeft(int dutyCycle, int cycles) {
+    int i;
+    for (i = 0; i < cycles; i++) {
+        motorLeft();
+        MAP_UtilsDelay(dutyCycle * 1000);
+        if (dutyCycle < 100) {
+            motorStop();
+            MAP_UtilsDelay((100 - dutyCycle) * 1000);
+        }
+    }
+}
+
+void softPWMDualRight(int dutyCycle, int cycles) {
+    int i;
+    for (i = 0; i < cycles; i++) {
+        motorRight();
+        MAP_UtilsDelay(dutyCycle * 1000);
+        if (dutyCycle < 100) {
+            motorStop();
+            MAP_UtilsDelay((100 - dutyCycle) * 1000);
+        }
+    }
+}
+
+void motorForwardPWM(int dutyCycle, int cycles) {
+    motorStop();
+    softPWMDual(dutyCycle, cycles);
+    motorStop();
+}
+
+void motorBackwardPWM(int dutyCycle, int cycles) {
+    motorStop();
+    softPWMDualBackward(dutyCycle, cycles);
+    motorStop();
+}
+
+void motorLeftPWM(int dutyCycle, int cycles) {
+    motorStop();
+    softPWMDualLeft(dutyCycle, cycles);
+    motorStop();
+}
+
+void motorRightPWM(int dutyCycle, int cycles) {
+    motorStop();
+    softPWMDualRight(dutyCycle, cycles);
+    motorStop();
+}
+//*****************************************************************************
+//                            Motor -- End
+//*****************************************************************************
 
 //*****************************************************************************
 //                            Main Function
 //*****************************************************************************
 void main() {
-	BoardInit();
-	PinMuxConfig();
+    BoardInit();
+    PinMuxConfig();
 
-	InitTerm();
+    // InitTerm();
 
-	I2C_IF_Open(I2C_MASTER_MODE_FST);
+    // I2C_IF_Open(I2C_MASTER_MODE_FST);
 
-	UART_PRINT("-----\tSTARTING DEVICE\t-----\r\n");
+    while (1) {
+        motorForwardPWM(50, 500);
+        MAP_UtilsDelay(100000000); // about 4 sec
 
-	while (1) {
+        motorLeftPWM(50, 500);
+        MAP_UtilsDelay(100000000); // about 4 sec
 
-		if (distance < 50) {
-			motorfoward();
-		} else {
-			motorstop();
-		}
+        motorRightPWM(50, 500);
+        MAP_UtilsDelay(100000000); // about 4 sec
 
-		UART_PRINT("Distance: %d\r\n", distance);
-	}
+        motorBackwardPWM(50, 500);
+        MAP_UtilsDelay(100000000); // about 4 sec
+    }
 }
 
 //*****************************************************************************
