@@ -74,8 +74,6 @@
 
 #include "pinmux.h"
 
-#include "vl53lo/core/inc/vl53l0x_api.h"
-#include "vl53lo/platform/inc/vl53l0x_platform.h"
 
 //*****************************************************************************
 //                      MACRO DEFINITIONS
@@ -98,8 +96,7 @@
             return iRetVal;     \
     }
 
-#define LIDAR_MAX_RANGE    500
-#define LIDAR_OUT_OF_RANGE 8190
+
 
 //*****************************************************************************
 //                 GLOBAL VARIABLES -- Start
@@ -114,102 +111,77 @@ extern uVectorEntry __vector_table;
 //                 GLOBAL VARIABLES -- End
 //*****************************************************************************
 
-//*****************************************************************************
-//
-//! Board Initialization & Configuration
-//!
-//! \param  None
-//!
-//! \return None
-//
-//*****************************************************************************
-static void
-BoardInit(void) {
-/* In case of TI-RTOS vector table is initialize by OS itself */
-#ifndef USE_TIRTOS
-    //
-    // Set vector table base
-    //
-#if defined(ccs)
-    MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
-#endif
-#if defined(ewarm)
-    MAP_IntVTableBaseSet((unsigned long)&__vector_table);
-#endif
-#endif
-    //
-    // Enable Processor
-    //
-    MAP_IntMasterEnable();
-    MAP_IntEnable(FAULT_SYSTICK);
-
-    PRCMCC3200MCUInit();
-}
 
 //*****************************************************************************
 //                            LiDAR -- Start
 //*****************************************************************************
-//VL53L0X_Dev_t dev;
-//VL53L0X_DeviceInfo_t DeviceInfo;
-//
-//void LIDAR_INIT() {
-//    VL53L0X_Dev_t *pDev = &dev;
-//
-//    uint32_t refSpadCount;
-//    uint8_t isApertureSpads;
-//    uint8_t VhvSettings;
-//    uint8_t PhaseCal;
-//
-//    VL53L0X_Error status;
-//
-//    pDev->I2cDevAddr = 0x29;
-//    pDev->comms_type = 1;
-//    pDev->comms_speed_khz = 400;
-//
-//    VL53L0X_WaitDeviceBooted(pDev);
-//
-//    status = VL53L0X_DataInit(pDev);
-//    if (status != VL53L0X_ERROR_NONE) {
-//        UART_PRINT("VL53L0X_DataInit Failed\r\n");
-//    }
-//
-//    status = VL53L0X_GetDeviceInfo(pDev, &DeviceInfo);
-//    if (status != VL53L0X_ERROR_NONE) {
-//        UART_PRINT("VL53L0X_GetDeviceInfo Failed\r\n");
-//    }
-//
-//    status = VL53L0X_StaticInit(pDev);
-//    if (status != VL53L0X_ERROR_NONE) {
-//        UART_PRINT("VL53L0X_StaticInit Failed\r\n");
-//    }
-//
-//    status = VL53L0X_PerformRefSpadManagement(pDev, &refSpadCount, &isApertureSpads);
-//    if (status != VL53L0X_ERROR_NONE) {
-//        UART_PRINT("VL53L0X_PerformRefSpadManagement Failed\r\n");
-//    }
-//
-//    status = VL53L0X_PerformRefCalibration(pDev, &VhvSettings, &PhaseCal);
-//    if (status != VL53L0X_ERROR_NONE) {
-//        UART_PRINT("VL53L0X_PerformRefCalibration Failed\r\n");
-//    }
-//
-//    status = VL53L0X_SetDeviceMode(pDev, VL53L0X_DEVICEMODE_SINGLE_RANGING);
-//    if (status != VL53L0X_ERROR_NONE) {
-//        UART_PRINT("VL53L0X_SetDeviceMode Failed\r\n");
-//    }
-//}
-//
-//uint16_t LIDAR_GET_RANGE_MILLIMETER() {
-//    VL53L0X_RangingMeasurementData_t measure;
-//    VL53L0X_Error status;
-//
-//    status = VL53L0X_PerformSingleRangingMeasurement(pDev, &measure);
-//    if (status != VL53L0X_ERROR_NONE) {
-//        UART_PRINT("VL53L0X_PerformSingleRangingMeasurement Failed\r\n");
-//    }
-//
-//    return = measure.RangeMilliMeter;
-//}
+#include "vl53lo/core/inc/vl53l0x_api.h"
+#include "vl53lo/platform/inc/vl53l0x_platform.h"
+#define LIDAR_MAX_RANGE    500
+#define LIDAR_OUT_OF_RANGE 8190
+
+VL53L0X_Dev_t dev;
+VL53L0X_DeviceInfo_t DeviceInfo;
+
+void LIDAR_INIT() {
+   VL53L0X_Dev_t *pDev = &dev;
+
+   uint32_t refSpadCount;
+   uint8_t isApertureSpads;
+   uint8_t VhvSettings;
+   uint8_t PhaseCal;
+
+   VL53L0X_Error status;
+
+   pDev->I2cDevAddr = 0x29;
+   pDev->comms_type = 1;
+   pDev->comms_speed_khz = 400;
+
+   VL53L0X_WaitDeviceBooted(pDev);
+
+   status = VL53L0X_DataInit(pDev);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_DataInit Failed\r\n");
+   }
+
+   status = VL53L0X_GetDeviceInfo(pDev, &DeviceInfo);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_GetDeviceInfo Failed\r\n");
+   }
+
+   status = VL53L0X_StaticInit(pDev);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_StaticInit Failed\r\n");
+   }
+
+   status = VL53L0X_PerformRefSpadManagement(pDev, &refSpadCount, &isApertureSpads);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_PerformRefSpadManagement Failed\r\n");
+   }
+
+   status = VL53L0X_PerformRefCalibration(pDev, &VhvSettings, &PhaseCal);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_PerformRefCalibration Failed\r\n");
+   }
+
+   status = VL53L0X_SetDeviceMode(pDev, VL53L0X_DEVICEMODE_SINGLE_RANGING);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_SetDeviceMode Failed\r\n");
+   }
+}
+
+uint16_t LIDAR_GET_RANGE_MILLIMETER() {
+   VL53L0X_Dev_t *pDev = &dev;
+   VL53L0X_RangingMeasurementData_t measure;
+   VL53L0X_Error status;
+
+   status = VL53L0X_PerformSingleRangingMeasurement(pDev, &measure);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_PerformSingleRangingMeasurement Failed\r\n");
+   }
+
+   return = measure.RangeMilliMqeter;
+}
 //*****************************************************************************
 //                            LiDAR -- End
 //*****************************************************************************
@@ -344,6 +316,42 @@ void motorRightPWM(int dutyCycle, int cycles) {
 //*****************************************************************************
 
 //*****************************************************************************
+//
+//! Board Initialization & Configuration
+//!
+//! \param  None
+//!
+//! \return None
+//
+//*****************************************************************************
+static void
+BoardInit(void) {
+/* In case of TI-RTOS vector table is initialize by OS itself */
+#ifndef USE_TIRTOS
+    //
+    // Set vector table base
+    //
+#if defined(ccs)
+    MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
+#endif
+#if defined(ewarm)
+    MAP_IntVTableBaseSet((unsigned long)&__vector_table);
+#endif
+#endif
+    //
+    // Enable Processor
+    //
+    MAP_IntMasterEnable();
+    MAP_IntEnable(FAULT_SYSTICK);
+
+    PRCMCC3200MCUInit();
+
+    I2C_IF_Open(I2C_MASTER_MODE_FST);
+
+    LIDAR_INIT();
+}
+
+//*****************************************************************************
 //                            Main Function
 //*****************************************************************************
 void main() {
@@ -355,17 +363,7 @@ void main() {
     // I2C_IF_Open(I2C_MASTER_MODE_FST);
 
     while (1) {
-        motorForwardPWM(50, 500);
-        MAP_UtilsDelay(100000000); // about 4 sec
-
-        motorLeftPWM(50, 500);
-        MAP_UtilsDelay(100000000); // about 4 sec
-
-        motorRightPWM(50, 500);
-        MAP_UtilsDelay(100000000); // about 4 sec
-
-        motorBackwardPWM(50, 500);
-        MAP_UtilsDelay(100000000); // about 4 sec
+        
     }
 }
 

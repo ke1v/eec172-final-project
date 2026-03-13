@@ -189,7 +189,7 @@ int main() {
 
 	printf("----------\n");
 
-	drawLine(3, 5, 3.14 / 4, 10, 0, &world);
+	drawLine(3, 5, 0.3, 10, 0, &world);
 
 	print_world(&world);
 

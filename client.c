@@ -99,6 +99,81 @@ extern uVectorEntry __vector_table;
 //                 GLOBAL VARIABLES -- End
 //*****************************************************************************
 
+
+//*****************************************************************************
+//                            LiDAR -- Start
+//*****************************************************************************
+#include "vl53lo/core/inc/vl53l0x_api.h"
+#include "vl53lo/platform/inc/vl53l0x_platform.h"
+#define LIDAR_MAX_RANGE    500
+#define LIDAR_OUT_OF_RANGE 8190
+
+VL53L0X_Dev_t dev;
+VL53L0X_DeviceInfo_t DeviceInfo;
+
+void LIDAR_INIT() {
+   VL53L0X_Dev_t *pDev = &dev;
+
+   uint32_t refSpadCount;
+   uint8_t isApertureSpads;
+   uint8_t VhvSettings;
+   uint8_t PhaseCal;
+
+   VL53L0X_Error status;
+
+   pDev->I2cDevAddr = 0x29;
+   pDev->comms_type = 1;
+   pDev->comms_speed_khz = 400;
+
+   VL53L0X_WaitDeviceBooted(pDev);
+
+   status = VL53L0X_DataInit(pDev);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_DataInit Failed\r\n");
+   }
+
+   status = VL53L0X_GetDeviceInfo(pDev, &DeviceInfo);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_GetDeviceInfo Failed\r\n");
+   }
+
+   status = VL53L0X_StaticInit(pDev);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_StaticInit Failed\r\n");
+   }
+
+   status = VL53L0X_PerformRefSpadManagement(pDev, &refSpadCount, &isApertureSpads);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_PerformRefSpadManagement Failed\r\n");
+   }
+
+   status = VL53L0X_PerformRefCalibration(pDev, &VhvSettings, &PhaseCal);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_PerformRefCalibration Failed\r\n");
+   }
+
+   status = VL53L0X_SetDeviceMode(pDev, VL53L0X_DEVICEMODE_SINGLE_RANGING);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_SetDeviceMode Failed\r\n");
+   }
+}
+
+uint16_t LIDAR_GET_RANGE_MILLIMETER() {
+   VL53L0X_Dev_t *pDev = &dev;
+   VL53L0X_RangingMeasurementData_t measure;
+   VL53L0X_Error status;
+
+   status = VL53L0X_PerformSingleRangingMeasurement(pDev, &measure);
+   if (status != VL53L0X_ERROR_NONE) {
+       UART_PRINT("VL53L0X_PerformSingleRangingMeasurement Failed\r\n");
+   }
+
+   return = measure.RangeMilliMqeter;
+}
+//*****************************************************************************
+//                            LiDAR -- End
+//*****************************************************************************
+
 //*****************************************************************************
 //                            Motor -- Start
 //*****************************************************************************
@@ -166,8 +241,9 @@ void motorRight()
     MOTOR_RIGHT_IN4_PIN);
 }
 
-void softPWMDual(int dutyCycle, int cycles)
+void motorForwardPWM(int dutyCycle, int cycles)
 {
+    motorStop();
     int i;
     for (i = 0; i < cycles; i++)
     {
@@ -179,10 +255,12 @@ void softPWMDual(int dutyCycle, int cycles)
             MAP_UtilsDelay((100 - dutyCycle) * 1000);
         }
     }
+    motorStop();
 }
 
-void softPWMDualBackward(int dutyCycle, int cycles)
+void motorBackwardPWM(int dutyCycle, int cycles)
 {
+    motorStop();
     int i;
     for (i = 0; i < cycles; i++)
     {
@@ -194,10 +272,12 @@ void softPWMDualBackward(int dutyCycle, int cycles)
             MAP_UtilsDelay((100 - dutyCycle) * 1000);
         }
     }
+    motorStop();
 }
 
-void softPWMDualLeft(int dutyCycle, int cycles)
+void motorLeftPWM(int dutyCycle, int cycles)
 {
+    motorStop();
     int i;
     for (i = 0; i < cycles; i++)
     {
@@ -209,10 +289,12 @@ void softPWMDualLeft(int dutyCycle, int cycles)
             MAP_UtilsDelay((100 - dutyCycle) * 1000);
         }
     }
+    motorStop();
 }
 
-void softPWMDualRight(int dutyCycle, int cycles)
+void motorRightPWM(int dutyCycle, int cycles)
 {
+    motorStop();
     int i;
     for (i = 0; i < cycles; i++)
     {
@@ -224,33 +306,6 @@ void softPWMDualRight(int dutyCycle, int cycles)
             MAP_UtilsDelay((100 - dutyCycle) * 1000);
         }
     }
-}
-
-void motorForwardPWM(int dutyCycle, int cycles)
-{
-    motorStop();
-    softPWMDual(dutyCycle, cycles);
-    motorStop();
-}
-
-void motorBackwardPWM(int dutyCycle, int cycles)
-{
-    motorStop();
-    softPWMDualBackward(dutyCycle, cycles);
-    motorStop();
-}
-
-void motorLeftPWM(int dutyCycle, int cycles)
-{
-    motorStop();
-    softPWMDualLeft(dutyCycle, cycles);
-    motorStop();
-}
-
-void motorRightPWM(int dutyCycle, int cycles)
-{
-    motorStop();
-    softPWMDualRight(dutyCycle, cycles);
     motorStop();
 }
 //*****************************************************************************
@@ -360,6 +415,8 @@ void main()
         {
             continue;
         }
+
+        
 
         switch (buffer[0])
         {
