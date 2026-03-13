@@ -31,6 +31,9 @@
  * 15 - Right LiDAR Sensor
  * 16 - Rear LiDAR Sensor
  * 17 - Left Wheel LiDAR Sensor
+
+ * Do Not Use: 21, 55
+ * 
  */
 
 void PinMuxConfig(void) {
