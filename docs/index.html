@@ -1,13 +1,423 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RC Car</title>
-</head>
-<body>
-    <h1>
-        EEC 172 Final Project RC Car
-    </h1>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Final Project Report</title>
+
+    <style>
+      body {
+        font-family: "Times New Roman", Times, serif;
+        margin: 0;
+        background: white;
+        color: black;
+        line-height: 1.7;
+      }
+
+      /* Page container */
+
+      .container {
+        width: 900px;
+        margin: auto;
+        padding: 40px;
+      }
+
+      /* Title */
+
+      header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      header h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+      }
+
+      header p {
+        font-size: 16px;
+      }
+
+      /* Headings */
+
+      h2 {
+        border-bottom: 2px solid black;
+        padding-bottom: 4px;
+        margin-top: 40px;
+      }
+
+      h3 {
+        margin-top: 25px;
+      }
+
+      /* Paragraph formatting */
+
+      p {
+        text-align: justify;
+      }
+
+      /* Figure formatting */
+
+      .figure {
+        text-align: center;
+        margin: 25px 0;
+      }
+
+      .figure img {
+        max-width: 700px;
+      }
+
+      .caption {
+        font-size: 14px;
+        margin-top: 5px;
+      }
+
+      /* Table formatting */
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+
+      table,
+      th,
+      td {
+        border: 1px solid black;
+      }
+
+      th {
+        background: #eeeeee;
+      }
+
+      th,
+      td {
+        padding: 8px;
+        text-align: left;
+      }
+
+      /* Footer */
+
+      footer {
+        text-align: center;
+        margin-top: 60px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <header>
+        <h1>Scout Rover</h1>
+        <p>Final Project Report</p>
+        <p>Ashton Wooldridge and Kelvin Wu | EEC 172 | Winter 2026</p>
+      </header>
+
+      <section>
+        <h2>1. Description</h2>
+
+        <p>
+          Scout Rover is a remotely operated two wheeled robot built on a CC3200
+          LaunchPad microcontroller. The rover supports IR remote directional
+          control, autonomous obstacle detection using a VL53L0X LiDAR sensor,
+          and a dead reckoning Return to Home function that autonomously
+          navigates the rover back to its starting position. Motor drive is
+          handled by an L298N dual H-bridge driver, and the system is programmed
+          into the CC3200's on-chip flash memory so that it boots standalone
+          without requiring a host computer or debugger connection.
+          <br /><br />
+          The project was originally planned to include tilt-based steering with
+          a second CC3200's onboard BMA222 accelerometer and live cloud
+          telemetry. Due to time constraints, those features were not completed
+          in the final prototype; the implemented system focuses on robust IR
+          control, obstacle detection, and dead reckoning navigation.
+        </p>
+      </section>
+
+      <section>
+        <h2>2. Design</h2>
+
+        <h3>2.1 Functional Specification</h3>
+
+        <div class="figure">
+          <img src="Functional Arch.png" />
+          <div class="caption">
+            Figure 1: State machine diagram of system behavior.
+          </div>
+        </div>
+
+        <p>
+          Upon starting, the CC3200 would poll an IR sensor connected to a GPIO
+          pin for input. Once it receives a valid input, it will first poll the
+          LiDAR sensor mounted to the front of the vehicle in order to ensure
+          sufficient distance between the vehicle and the obstacle. If there is
+          sufficient space, the vehicle will send power to the motor driver and
+          move the vehicle according to the movement command received. After
+          moving, it will go back to polling the IR sensor.
+        </p>
+
+        <h3>2.2 System Architecture</h3>
+
+        <div class="figure">
+          <img src="System Arch.png" />
+          <div class="caption">
+            Figure 2: System architecture block diagram.
+          </div>
+        </div>
+
+        <p>
+          Our prototype used a CC3200 Launchpad as our control unit. The CC3200
+          will perform all of the obstacle detection calculations as well as
+          provide controls for a motor driver via GPIO. The IR remote will
+          interface with the CC3200 via an IR sensor circuit mounted on the
+          rover. LiDAR sensors also mounted on the rover will provide distance
+          measurements to ensure the rover does not crash into any obstacles.
+        </p>
+      </section>
+
+      <section>
+        <h2>3. Implementation</h2>
+
+        <h3>3.1 IR Signal Decoding</h3>
+
+        <p>
+          The CC3200 receives NEC protocol IR signals through a GPIO that is
+          connected to an IR receiver module that is wired to PIN_61 (GPIOA0). A
+          GPIO edge-triggered interrupt fires on both rising and falling edges.
+          A hardware timer (TIMERA0) is started on the rising edge and stopped
+          on the falling edge. The elapsed microsecond count is then compared
+          against known pulse widths: a start burst of ~4430 μs, a logic-zero of
+          ~550 μs, and a logic-one of ~1670 μs, each with an acceptable jitter
+          window of ±200 μs.
+          <br /><br />
+          The 32-bit command word is assembled one bit at a time into a
+          readBuffer shift register. Once all 32 bits are received, an inputFlag
+          is set and the main loop dispatches the command via handleIRCommand().
+          The button to action mapping is: button 2 = forward, button 8 =
+          backward, button 4 = left turn, button 6 = right turn, MUTE = stop,
+          and LAST = run the Return to Home feature.
+        </p>
+
+        <h3>3.2 Motor Control (L298N + Software PWM)</h3>
+
+        <p>
+          The L298N dual H-bridge motor driver is connected to four CC3200 GPIO
+          output pins: IN1 on PIN_15 (GPIOA2), IN2 on PIN_64 (GPIOA1), IN3 on
+          PIN_06 (GPIOA1), and IN4 on PIN_45 (GPIOA3). Each motor is controlled
+          by one IN pair and driving IN1 high and IN2 low spins the left motor
+          forward; reversing the pair drives it backward. The right motor is
+          controlled exactly the same but through IN3 and IN4.
+          <br /><br />
+          The motor speed was controlled through PWM: a loop toggles the GPIO
+          pins high for dutyCycle × 1000 units and low for (100 - dutyCycle) ×
+          1000 units per cycle. Forward and backward movements run at 75% duty
+          cycle over 500 cycles; turns run at 50% duty cycle over 500 cycles to
+          produce a tighter arc. Turning is achieved by driving the two motors
+          in opposite directions, the left turn drives the left motor backward
+          and the right motor forward, and vice versa for the right.
+        </p>
+
+        <h3>3.3 LiDAR Obstacle Detection (VL53L0X)</h3>
+
+        <p>
+          A VL53L0X time of flight distance sensor is connected to the CC3200
+          over I2C (PIN_01 = SCL, PIN_02 = SDA) at its default address of 0x29.
+          The library used to interact with the sensor was provided by
+          STMicroelectronics under the part number STSW-IMG005, which we
+          imported into our project and compiled alongside the rest of our C
+          code. The sensor is initialized with VL53L0X_DataInit(),
+          VL53L0X_StaticInit(), reference SPAD management, and reference
+          calibration before being placed into a single ranging mode. Each
+          measurement is triggered on demand by calling
+          VL53L0X_PerformSingleRangingMeasurement().
+          <br /><br />
+          Obstacle detection is integrated directly into the forward motor PWM
+          loop. Every 20 software PWM cycles, a fresh range measurement is
+          taken. If the measured distance falls below 200 mm, the motors are
+          immediately stopped using motorStop() and the movement function
+          returns early. This check only applies to forward motion; backward and
+          turning movements do not use the LiDAR.
+        </p>
+
+        <h3>3.4 Dead Reckoning / Return to Home</h3>
+
+        <p>
+          The Return to Home function is triggered by the LAST button on the IR
+          remote. The implementation executes a fixed timed sequence that
+          approximates a return path: drive forward at 75% duty for 500 cycles,
+          stop, wait (MAP_UtilsDelay(10000000)), turn left at 50% duty for 300
+          cycles, stop, wait, then drive forward again for 500 cycles. This
+          encodes the inverse of a known test route directly in firmware. The
+          delay between movements ensures the motors fully stop before the next
+          command is issued.
+          <br /><br />
+          A more sophisticated implementation would use the heading and elapsed
+          time on every movement to build a dynamic position estimate, then
+          compute and execute the inverse path. This was a target goal that was
+          partially achieved, the mechanism works correctly for a fixed route
+          but does not generalize to arbitrary user driven paths.
+        </p>
+
+        <h3>3.5 Boot from Flash</h3>
+
+        <p>
+          The CC3200 is configured to boot autonomously from its internal serial
+          flash without requiring a JTAG debugger or host PC. This is achieved
+          by setting the SOP2 jumper on the LaunchPad to select flash boot mode,
+          then programming the compiled firmware binary onto the device using
+          Texas Instruments’ UniFlash. Once programmed, the board executes the
+          application immediately on power up.
+        </p>
+
+        <h3>3.6 Pin Configuration</h3>
+
+        <p>
+          All peripheral clocks and pin modes are configured in PinMuxConfig().
+          UART0 is enabled on PIN_55 and PIN_57 (PIN_MODE_3) for the debug
+          terminal. GPIO clocks for GPIOA0 through GPIOA3 are enabled using
+          PRCMPeripheralClkEnable(). PIN_61 is configured as a GPIO input for
+          the IR receiver, and PIN_15, PIN_64, PIN_06, and PIN_45 are configured
+          as GPIO outputs for the four L298N control lines. I2C pins PIN_01 and
+          PIN_02 are configured with PinTypeI2C() in PIN_MODE_1 for the VL53L0X
+          sensor.
+        </p>
+      </section>
+
+      <section>
+        <h2>4. Challenges</h2>
+
+        <p>
+            Some of the biggest challenges we ran into were poor quality products and unclear
+            documentation. The chassis kit that we had purchased had missized screws, causing one of the
+            wheels to fall off several times throughout testing. This was fixed by adding additional bolts to the
+            wheel mount. Another issue the chassis kit had was poor soldering, as two of the motor power
+            cables fell off after the car began to drive. This was fixed by replacing and resoldering all motor
+            power cables, as we had little faith in the durability of the remaining two power wires.
+            <br><br>
+            Another issue we encountered was unclear documentation regarding the GPIO pins on the
+            CC3200. Two pins we attempted to use as GPIO output pins were clearly labelled in the manual
+            as GPIO capable, and the system configuration utility allowed us to set it as such, but pins 21 and
+            55 were unable to output digital signals. We failed to identify the cause of this in software, and
+            testing with 2 other Launchpad boards resulted in the same failure, leading us to believe it was
+            not a software bug. We fixed this by rewiring our GPIO pins to use different pins.
+            <br><br>
+            Lastly, we faced a challenge of scope, where we initially planned for many more features to be
+            included, such as analog steering via controller tilt, live telemetry displayed on a web browser via
+            WebSocket, dynamic return-to-home via dead reckoning, and an OLED status display on the
+            controller. While we were able to implement independent prototypes of some of these features,
+            their uniqueness from each other meant that we were unable to assemble them all into a full,
+            working system in the time we had. Our final prototype ended up lacking these features because
+            we only accounted for the time it took to develop these features independently, and failed to
+            account for the time it took for integration.
+        </p>
+      </section>
+
+      <section>
+        <h2>5. Future Work</h2>
+
+        <p>
+            Tilt Steering Mode: The second CC3200's BMA222 accelerometer was intended to serve as a tilt
+            based steering remote, sending x/y tilt readings to the rover via a cloud intermediary. The
+            proportional tilt-to-speed mapping with configurable dead zones was designed but not
+            implemented. Completing this would provide a more intuitive, hands free control mode.
+            <br><br>
+            Telemetry: The live telemetry (speed, direction, obstacle distance, mode, and elapsed time) was
+            planned to be streamed from the CC3200 to a WebSocket server, which would then forward the
+            data to a web dashboard for real time visualization. The CC3200 would publish telemetry over
+            Wi-Fi using its built-in wireless stack, and then a cloud hosted WebSocket server would receive
+            and log the data. This would enable remote monitoring, post session log review, and directional
+            path plotting which would significantly improve debugging and making the rover's behavior
+            observable without a physical debug terminal.
+            <br><br>
+            Dynamic Dead Reckoning: The current Return to Home is a hard coded movement sequence that
+            only works for one specific test route. A proper implementation would accumulate heading
+            direction and elapsed time on every movement, compute a dynamic position estimate, and
+            execute the minimum inverse path back to the origin. Incorporating LiDAR assisted wall following
+            during the return journey would further improve accuracy in different environments.
+            <br><br>
+            OLED Status Display: An OLED display was part of our materials but not integrated into the final
+            prototype. Adding it in a future revision would show real time speed, direction, drive mode,
+            obstacle distance, and Wi-Fi status, would make the rover more self contained and easier to
+            operate without a debug terminal.
+        </p>
+      </section>
+
+      <section>
+        <h2>6. Bill of Materials</h2>
+
+        <table>
+          <tr>
+            <th>Component</th>
+            <th>Price Per Unit</th>
+            <th>Where to Obtain</th>
+          </tr>
+
+          <tr>
+            <td>CC3200 Launchpad</td>
+            <td>$66</td>
+            <td>Digi-Key</td>
+          </tr>
+
+          <tr>
+            <td>BMA222 Accelerometer</td>
+            <td>Free</td>
+            <td>Built-in to CC3200 Launchpad</td>
+          </tr>
+
+          <tr>
+            <td>OLED Display</td>
+            <td>$20</td>
+            <td>Adafruit</td>
+          </tr>
+
+          <tr>
+            <td>IR Receiver</td>
+            <td>$1</td>
+            <td>Mouser Electronics</td>
+          </tr>
+
+          <tr>
+            <td>IR Remote</td>
+            <td>$20</td>
+            <td>Amazon</td>
+          </tr>
+
+          <tr>
+            <td>Lidar Sensor</td>
+            <td>$15</td>
+            <td>Adafruit</td>
+          </tr>
+
+          <tr>
+            <td>L298N Motor Driver</td>
+            <td>$12</td>
+            <td>Amazon</td>
+          </tr>
+
+          <tr>
+            <td>2WD Chassis</td>
+            <td>$20</td>
+            <td>Amazon</td>
+          </tr>
+
+          <tr>
+            <td>TT Motors</td>
+            <td>$3</td>
+            <td>Amazon</td>
+          </tr>
+
+          <tr>
+            <td>Cloud Services</td>
+            <td>$5/month</td>
+            <td>DigitalOcean</td>
+          </tr>
+        </table>
+      </section>
+
+      <footer>
+        <p>End of Report</p>
+      </footer>
+    </div>
+  </body>
 </html>
+```
