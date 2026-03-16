@@ -287,28 +287,37 @@
         <h2>4. Challenges</h2>
 
         <p>
-            Some of the biggest challenges we ran into were poor quality products and unclear
-            documentation. The chassis kit that we had purchased had missized screws, causing one of the
-            wheels to fall off several times throughout testing. This was fixed by adding additional bolts to the
-            wheel mount. Another issue the chassis kit had was poor soldering, as two of the motor power
-            cables fell off after the car began to drive. This was fixed by replacing and resoldering all motor
-            power cables, as we had little faith in the durability of the remaining two power wires.
-            <br><br>
-            Another issue we encountered was unclear documentation regarding the GPIO pins on the
-            CC3200. Two pins we attempted to use as GPIO output pins were clearly labelled in the manual
-            as GPIO capable, and the system configuration utility allowed us to set it as such, but pins 21 and
-            55 were unable to output digital signals. We failed to identify the cause of this in software, and
-            testing with 2 other Launchpad boards resulted in the same failure, leading us to believe it was
-            not a software bug. We fixed this by rewiring our GPIO pins to use different pins.
-            <br><br>
-            Lastly, we faced a challenge of scope, where we initially planned for many more features to be
-            included, such as analog steering via controller tilt, live telemetry displayed on a web browser via
-            WebSocket, dynamic return-to-home via dead reckoning, and an OLED status display on the
-            controller. While we were able to implement independent prototypes of some of these features,
-            their uniqueness from each other meant that we were unable to assemble them all into a full,
-            working system in the time we had. Our final prototype ended up lacking these features because
-            we only accounted for the time it took to develop these features independently, and failed to
-            account for the time it took for integration.
+          Some of the biggest challenges we ran into were poor quality products
+          and unclear documentation. The chassis kit that we had purchased had
+          missized screws, causing one of the wheels to fall off several times
+          throughout testing. This was fixed by adding additional bolts to the
+          wheel mount. Another issue the chassis kit had was poor soldering, as
+          two of the motor power cables fell off after the car began to drive.
+          This was fixed by replacing and resoldering all motor power cables, as
+          we had little faith in the durability of the remaining two power
+          wires.
+          <br /><br />
+          Another issue we encountered was unclear documentation regarding the
+          GPIO pins on the CC3200. Two pins we attempted to use as GPIO output
+          pins were clearly labelled in the manual as GPIO capable, and the
+          system configuration utility allowed us to set it as such, but pins 21
+          and 55 were unable to output digital signals. We failed to identify
+          the cause of this in software, and testing with 2 other Launchpad
+          boards resulted in the same failure, leading us to believe it was not
+          a software bug. We fixed this by rewiring our GPIO pins to use
+          different pins.
+          <br /><br />
+          Lastly, we faced a challenge of scope, where we initially planned for
+          many more features to be included, such as analog steering via
+          controller tilt, live telemetry displayed on a web browser via
+          WebSocket, dynamic return-to-home via dead reckoning, and an OLED
+          status display on the controller. While we were able to implement
+          independent prototypes of some of these features, their uniqueness
+          from each other meant that we were unable to assemble them all into a
+          full, working system in the time we had. Our final prototype ended up
+          lacking these features because we only accounted for the time it took
+          to develop these features independently, and failed to account for the
+          time it took for integration.
         </p>
       </section>
 
@@ -316,29 +325,37 @@
         <h2>5. Future Work</h2>
 
         <p>
-            Tilt Steering Mode: The second CC3200's BMA222 accelerometer was intended to serve as a tilt
-            based steering remote, sending x/y tilt readings to the rover via a cloud intermediary. The
-            proportional tilt-to-speed mapping with configurable dead zones was designed but not
-            implemented. Completing this would provide a more intuitive, hands free control mode.
-            <br><br>
-            Telemetry: The live telemetry (speed, direction, obstacle distance, mode, and elapsed time) was
-            planned to be streamed from the CC3200 to a WebSocket server, which would then forward the
-            data to a web dashboard for real time visualization. The CC3200 would publish telemetry over
-            Wi-Fi using its built-in wireless stack, and then a cloud hosted WebSocket server would receive
-            and log the data. This would enable remote monitoring, post session log review, and directional
-            path plotting which would significantly improve debugging and making the rover's behavior
-            observable without a physical debug terminal.
-            <br><br>
-            Dynamic Dead Reckoning: The current Return to Home is a hard coded movement sequence that
-            only works for one specific test route. A proper implementation would accumulate heading
-            direction and elapsed time on every movement, compute a dynamic position estimate, and
-            execute the minimum inverse path back to the origin. Incorporating LiDAR assisted wall following
-            during the return journey would further improve accuracy in different environments.
-            <br><br>
-            OLED Status Display: An OLED display was part of our materials but not integrated into the final
-            prototype. Adding it in a future revision would show real time speed, direction, drive mode,
-            obstacle distance, and Wi-Fi status, would make the rover more self contained and easier to
-            operate without a debug terminal.
+          Tilt Steering Mode: The second CC3200's BMA222 accelerometer was
+          intended to serve as a tilt based steering remote, sending x/y tilt
+          readings to the rover via a cloud intermediary. The proportional
+          tilt-to-speed mapping with configurable dead zones was designed but
+          not implemented. Completing this would provide a more intuitive, hands
+          free control mode.
+          <br /><br />
+          Telemetry: The live telemetry (speed, direction, obstacle distance,
+          mode, and elapsed time) was planned to be streamed from the CC3200 to
+          a WebSocket server, which would then forward the data to a web
+          dashboard for real time visualization. The CC3200 would publish
+          telemetry over Wi-Fi using its built-in wireless stack, and then a
+          cloud hosted WebSocket server would receive and log the data. This
+          would enable remote monitoring, post session log review, and
+          directional path plotting which would significantly improve debugging
+          and making the rover's behavior observable without a physical debug
+          terminal.
+          <br /><br />
+          Dynamic Dead Reckoning: The current Return to Home is a hard coded
+          movement sequence that only works for one specific test route. A
+          proper implementation would accumulate heading direction and elapsed
+          time on every movement, compute a dynamic position estimate, and
+          execute the minimum inverse path back to the origin. Incorporating
+          LiDAR assisted wall following during the return journey would further
+          improve accuracy in different environments.
+          <br /><br />
+          OLED Status Display: An OLED display was part of our materials but not
+          integrated into the final prototype. Adding it in a future revision
+          would show real time speed, direction, drive mode, obstacle distance,
+          and Wi-Fi status, would make the rover more self contained and easier
+          to operate without a debug terminal.
         </p>
       </section>
 
@@ -412,6 +429,23 @@
             <td>DigitalOcean</td>
           </tr>
         </table>
+      </section>
+
+      <section>
+        <h2>7. Demonstration Video</h2>
+        <p>
+          The following video demonstrates the functionality of the completed
+          prototype.
+        </p>
+        <div class="figure">
+          <video width="700" controls>
+            <source src="demo.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+          <div class="caption">
+            Figure 4: Demonstration of the working prototype.
+          </div>
+        </div>
       </section>
 
       <footer>
